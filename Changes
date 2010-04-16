@@ -1,0 +1,12 @@
+Revision history for CGI-FormBuilder-Config-Simple
+
+0.06 	Fri Apr 16 06:08:09 EDT 2010
+	now passing a fair regression test
+
+0.05	Sun Apr 11 00:54:37 EDT 2010
+	refactoring this as a stand-alone module
+
+0.01    February 2010, 
+	early prototype developed as Politics::Supporters::Volunteer
+        First version, though never released to that unsuspecting world.
+
