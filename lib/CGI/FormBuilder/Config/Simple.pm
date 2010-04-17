@@ -12,11 +12,11 @@ CGI::FormBuilder::Config::Simple - deploy web forms w/ .ini file
 
 =head1 VERSION
 
-Version 0.06
+Version 0.07
 
 =cut
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 
 =head1 SYNOPSIS
@@ -25,13 +25,17 @@ This module exists to synthesize the abstractions of
 CGI::FormBuilder with those of Config::Simple to make it nearly
 possible to deploy a working form and database application
 by simply configuring an ini file.  Add to that config file
-your data processing routines and you are done.  This module
-handles converting a config file into a form, validating user
-input and all that.
+your data processing routines, perhaps a template from the
+design team and you are done.  This module handles converting
+a config file into a form, validating user input and all that.
 
 A developer would still be required to write methods to process
 their data, but much of the rest of the work will be covered
 by this modules' methods, and those of the ones just cited.
+
+For some sample code, please see:
+	t/My/Module/Test.pm
+which provides scaffolding for the test suite.
 
     -- signup.cgi --
 
@@ -39,10 +43,11 @@ by this modules' methods, and those of the ones just cited.
     use MyModule::Signup;
         # see below for details . . . 
 
+    my $debug_level = 0; # raise to 3 for noisy logs 
     my $signup = MyModule::Signup->new({ config_file => '/path/to/config/file.ini' });
         # should create a config object respecting ->param() method 
         # and embed that object at $self->{'cfg'}
-    my $signup_form_html = $signup->render_web_form() or
+    my $signup_form_html = $signup->render_web_form('sign_up',$debug_level) or
         carp("$0 died rendering a signup form. $signup->errstr. $!");
 
     1;
@@ -51,7 +56,7 @@ by this modules' methods, and those of the ones just cited.
 
     package MyModule::Signup;
 
-    use CGI::FormBuilder::Config::Simple;
+    use base 'CGI::FormBuilder::Config::Simple';
 
     sub new {
       my $class = shift;
@@ -73,7 +78,7 @@ by this modules' methods, and those of the ones just cited.
     }
 
     # plus additional methods to process collected data,
-    # but the code above should render, validate and store your data 
+    # but the code above should render and validate your data 
 
     # Now write a config file looking like this, and your are done
 
@@ -105,9 +110,10 @@ by this modules' methods, and those of the ones just cited.
 
     [signup_form_sample_fieldset]
     fields=this_field,that_field,another_field
+    process_protocol=sample_data_processing_method
+    enabled=1
     
     [signup_form_sample_fieldset_this_field]
-    process_protocol=sample_data_processing_method
     name=this_field
     label='This field'
     type=text
@@ -123,18 +129,25 @@ by this modules' methods, and those of the ones just cited.
 
 =head1 METHODS 
 
-=head2 render_web_form 
+=head2 ->render_web_form('form_name',$debug_level)
 
 Given an object, with a configuration object accessible at
 $self->{'cfg'}, honoring the ->param() method provided by
 Config::Simple and Config::Simple::Extended (but possibly
 others), render the html for a web form for service.
 
+This method takes an option second argument, used to set
+the debug level.  Use 0 or undefined for quiet operation,
+1 or greater to see information about the form being built,
+2 or greater to watch the field sets being built and 3 or
+greater to watch the fields being built.
+
 =cut
 
 sub render_web_form {
   my $self = shift;
   my $form_name = shift;
+  my $debug = shift || 0;
 
   my $form_attributes = $self->{'cfg'}->get_block("$form_name");
   my %attributes;
@@ -144,16 +157,21 @@ sub render_web_form {
   }
   my $form = CGI::FormBuilder->new( %attributes );
   $form->{'cgi_fb_cfg_simple_form_name'} = $form_name;
-  # print STDERR Dumper(\%attributes);
+  if($debug > 0){
+    print STDERR Dumper(\%attributes);
+  }
   # print STDERR Dumper($form);
 
   my $html;
   my $fieldsets = $self->{'cfg'}->param("$form_name.fieldsets");
   my @fieldsets = split /,/,$fieldsets;
 
+  # print Dumper(\@fieldsets);
   foreach my $fieldset (@fieldsets) {
-    # print STDERR "Now building fieldset: $fieldset \n";
-    $self->build_fieldset($form,$fieldset);
+    if($debug > 1){
+      print STDERR "Now building fieldset: " . Dumper($fieldset) . "\n";
+    }
+    $self->build_fieldset($form,$fieldset,$debug);
   }
   if ($form->submitted && $form->validate) {
     # Do something to update your data (you would write this)
@@ -172,7 +190,12 @@ sub render_web_form {
 
 =head2 $self->process_form($form)
 
+In your My::Module, you need to write a method for every
+fieldset.process_protocol in the configuration file.
 
+This method will be called by the ->render_web_form() method
+and cycle through each fieldset and execute your application
+specific database interactions and other required processing.
 
 =cut 
 
@@ -197,7 +220,7 @@ sub process_form {
   return;
 }
 
-=head2 $self->build_fieldset($form,$fieldset)
+=head2 $self->build_fieldset($form,$fieldset,$debug_level)
 
 Parses the configuration object for the fields required to
 build a form's fieldset and calls ->build_field() to compile the
@@ -209,21 +232,29 @@ sub build_fieldset {
   my $self = shift;
   my $form = shift;
   my $fieldset = shift;
+  my $debug = shift;
 
+  # print STDERR "Now being asked to build a fieldset \n";
   my $form_name = $form->{'cgi_fb_cfg_simple_form_name'};
   my $stanza = $form_name . '_' . $fieldset;
+  if($debug > 1){
+    print STDERR "->build_fieldset() now processing $stanza \n";
+  }
   if($self->{'cfg'}->param("$stanza.enabled")){
-    # my $form_name = 'vol_form';
     my $stanza = $form_name . '_' . $fieldset;
     my $fields = $self->{'cfg'}->param("$stanza.fields");
     foreach my $field (@{$fields}) {
       my $field_stanza = $stanza . '_' . $field;
-      # print STDERR "seeking stanza: $field_stanza \n";
+      if($debug > 1){
+        print STDERR "seeking field stanza: $field_stanza \n";
+      }
       unless($self->{'cfg'}->param("$field_stanza.disabled")){
         # print STDERR Dumper($field),"\n";
-        $self->build_field($form,$fieldset,$field);
+        $self->build_field($form,$fieldset,$field,$debug);
       }
     }
+  } else {
+    print STDERR "The $fieldset fieldset has not been enabled \n";
   }
   return;
 }
@@ -240,15 +271,20 @@ sub build_field {
   my $form = shift;
   my $fieldset = shift;
   my $field = shift;
+  my $debug = shift;
 
   my $form_name = $form->{'cgi_fb_cfg_simple_form_name'};
   my $block = $form_name . '_' . $fieldset . '_' . $field;
-  # print STDERR "Our next block is: $block \n";
+  if($debug > 2){
+    print STDERR "Our next block is: $block \n";
+  }
   my $field_attributes = $self->{'cfg'}->get_block($block);
 
   my @attributes;
   foreach my $attribute (keys %{$field_attributes}){
-    # print STDERR "My attribute is: $attribute \n";
+    if($debug > 2){
+      print STDERR "My attribute is: $attribute \n";
+    }
     my $value = $field_attributes->{$attribute};
     # if($attribute eq 'name'){ $value = $fielddset . '_' . $value;}
     push @attributes, $attribute => $value;

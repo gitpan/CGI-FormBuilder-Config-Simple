@@ -1,5 +1,13 @@
 Revision history for CGI-FormBuilder-Config-Simple
 
+0.07 	Fri Apr 16 22:15:32 EDT 2010
+	Critical Documentation Bug fixed.
+	Synopsis had failed to disclose need to 
+	use base 'CGI::FormBuilder::Config::Simple';
+	nor to set each fieldset with: enabled=1
+	Now accepting $debug_level on interface 
+	of most methods, and using that to render useful feedback.
+
 0.06 	Fri Apr 16 06:08:09 EDT 2010
 	now passing a fair regression test
 

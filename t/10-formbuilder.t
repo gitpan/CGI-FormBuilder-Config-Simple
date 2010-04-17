@@ -58,5 +58,18 @@ like($form_html,qr/<input id="signup_submit" name="_submit" type="submit" value=
 # print STDERR Dumper($self->{'dbh'});
 # print STDERR Dumper($self->{'cfg'});
 
+# still need to test and refine debug output
+# tests ought to capture and redirect and compare STDERR stream
+# I had to do that with Test::MonitorSites
+
+# $form_html = $self->render_web_form('signup_form',3) or
+#     carp("$0 died rendering a signup form. $self->errstr. $!");
+# 
+# $form_html = $self->render_web_form('signup_form',2) or
+#     carp("$0 died rendering a signup form. $self->errstr. $!");
+# 
+# $form_html = $self->render_web_form('signup_form',1) or
+#     carp("$0 died rendering a signup form. $self->errstr. $!");
+
 1;
 
