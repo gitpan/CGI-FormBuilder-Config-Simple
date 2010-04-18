@@ -1,5 +1,21 @@
 Revision history for CGI-FormBuilder-Config-Simple
 
+0.09	Sun Apr 18 00:33:57 EDT 2010
+	->build_field() now seems to handle 
+	a hashref for options attribute.
+	got some noise out of logs 
+	$self->process_form($form,$debug_level) 
+	now accepts and uses $debug_level
+	passing it back to the user's methods
+
+0.08 	Sat Apr 17 17:00:20 EDT 2010
+	Update perldoc to reflect addition 
+	of $debug_level setting
+	adding code to handle code references 
+	passed from config file to populate 
+	options for select boxes
+	as well as documentation on how to use it
+
 0.07 	Fri Apr 16 22:15:32 EDT 2010
 	Critical Documentation Bug fixed.
 	Synopsis had failed to disclose need to 

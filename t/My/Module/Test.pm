@@ -40,5 +40,18 @@ sub connect {
   return $self;
 }
 
+sub get_that_field_options {
+  my @options = ('an_option','another_option');
+  return \@options;
+}
+
+sub get_that_field_labels {
+  my %options = (
+         'an_option' => 'We call an_option like this',
+    'another_option' => 'We call another_option like that',
+    );
+  return \%options;
+}
+
 1;
 

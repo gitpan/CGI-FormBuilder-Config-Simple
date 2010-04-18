@@ -12,11 +12,11 @@ CGI::FormBuilder::Config::Simple - deploy web forms w/ .ini file
 
 =head1 VERSION
 
-Version 0.07
+Version 0.09
 
 =cut
 
-our $VERSION = '0.07';
+our $VERSION = '0.09';
 
 
 =head1 SYNOPSIS
@@ -77,6 +77,11 @@ which provides scaffolding for the test suite.
       return $self;
     }
 
+    sub get_that_field_options {
+      my @options = ('an_option','another_option');
+      return \@options;
+    }
+
     # plus additional methods to process collected data,
     # but the code above should render and validate your data 
 
@@ -122,7 +127,14 @@ which provides scaffolding for the test suite.
     validate='/\w+/'
     
     [signup_form_sample_fieldset_that_field]
-       . . . 
+    name=that_field
+    label='That field'
+    type=select
+    options=&get_that_field_options
+    ;options=choice_a,choice_b,choice_c
+    fieldset=sample_fieldset
+    require=1
+    validate=&get_that_field_options
     
     [signup_form_sample_fieldset_another_field]
        . . . 
@@ -175,7 +187,7 @@ sub render_web_form {
   }
   if ($form->submitted && $form->validate) {
     # Do something to update your data (you would write this)
-    $self->process_form($form);
+    $self->process_form($form,$debug);
 
     # Show confirmation screen
     $html = $form->confirm(header => 1);
@@ -188,7 +200,7 @@ sub render_web_form {
   return $html;
 }
 
-=head2 $self->process_form($form)
+=head2 $self->process_form($form,$debug_level)
 
 In your My::Module, you need to write a method for every
 fieldset.process_protocol in the configuration file.
@@ -202,6 +214,8 @@ specific database interactions and other required processing.
 sub process_form {
   my $self = shift;
   my $form = shift;
+  my $debug_level = shift;
+  unless(defined($debug_level)){ $debug_level = 0; }
   my $field = $form->fields;
   my $form_name = $form->{'cgi_fb_cfg_simple_form_name'};
 
@@ -213,8 +227,10 @@ sub process_form {
   foreach my $fieldset (@fieldsets) {
     my $stanza = $form_name . '_' . $fieldset;
     my $process_protocol = $self->{'cfg'}->param("$stanza.process_protocol");
-    # print STDERR "Our process_protocol is: $process_protocol \n";
-    $self->$process_protocol($form_name,$field);
+    if($debug_level > 0){
+      print STDERR "Our process_protocol is: $process_protocol for fieldset $stanza \n";
+    }
+    $self->$process_protocol($form_name,$field,$debug_level);
   }
 
   return;
@@ -259,7 +275,7 @@ sub build_fieldset {
   return;
 }
 
-=head2 $self->build_field($form,$fieldset,$field)
+=head2 $self->build_field($form,$fieldset,$field,$debug_level)
 
 Parses the configuration object for the attributes used to
 configure a CGI::FormBuilder->field() object.
@@ -285,9 +301,43 @@ sub build_field {
     if($debug > 2){
       print STDERR "My attribute is: $attribute \n";
     }
+    my @values = ();
     my $value = $field_attributes->{$attribute};
-    # if($attribute eq 'name'){ $value = $fielddset . '_' . $value;}
-    push @attributes, $attribute => $value;
+    if(defined($value)){
+      if($value =~ m/^&/){
+        $value =~ s/^&//;
+        my $values = $self->$value() || $self->errstr("write a method called ->$value");
+        if($attribute eq 'label'){
+          if($debug > 2){
+            print STDERR Dumper($values);
+          }
+          push @attributes, $attribute => $values;
+        } elsif($attribute eq 'options'){
+          if(ref($values) eq 'ARRAY'){
+            if($debug > 2){
+              print STDERR Dumper(\@{$values});
+            }
+            push @attributes, $attribute => \@{$values};
+          } elsif(ref($values) eq 'HASH'){
+            if($debug > 2){
+              print STDERR Dumper(\%{$values});
+            }
+            push @attributes, $attribute => \%{$values};
+          } else {
+            print STDERR '$values is ' . Dumper($values);
+          }
+        } elsif($attribute eq 'value'){
+          if($debug > 2){
+            print STDERR Dumper(\@{$values});
+          }
+          push @attributes, $attribute => \@{$values};
+        }
+      } elsif($value !~ m/^&/) {
+        push @attributes, $attribute => $value;
+      } else {
+        print STDERR "Failed to catch and handle $value for $attribute \n";
+      }
+    }
   }
 
   $form->field(@attributes);
@@ -311,6 +361,11 @@ sub errstr {
 =head1 AUTHOR
 
 Hugh Esco, C<< <hesco at campaignfoundations.com> >>
+
+I want to acknowledge the support of the Green Party of Texas
+for making possible development of this module.  An exciting
+project of theirs serves as the first real world test of this
+idea which had been kicking about my head for a while.
 
 =head1 BUGS
 
