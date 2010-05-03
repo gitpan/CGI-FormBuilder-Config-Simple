@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use Test::More tests => 17;
 use Test::DatabaseRow;
-use WWW::Mechanize;
+use Test::WWW::Mechanize::CGI;
 # use Test::HTML::Tidy;
 use Cwd;
 use Carp;
@@ -20,9 +20,9 @@ my $self = My::Module::Test->new({ config_file => 't/conf.d/cgi_fb_config_simple
 isa_ok($self,'My::Module::Test');
 
 local $Test::DatabaseRow::dbh = $self->{'dbh'};
-my $agent = WWW::Mechanize->new();
+my $agent = Test::WWW::Mechanize::CGI->new();
 
-is($self->errstr,'','The error string starts off empty.');
+is($self->errstr,undef,'The error string starts off empty and returns undef.');
 $self->errstr('Note this error.  ');
 like($self->errstr,qr/Note this error./,'The error string accepts an assignment.');
 $self->errstr('Note another error.  ');
@@ -43,10 +43,10 @@ like($form_html,qr/<script type="text\/javascript">/,'And it seems to have gener
 TODO: { 
 
   local $TODO = 'This test seems to fail for some unknown reason';
-  like($form_html,qr/function validate_signup (form)/,'Got anticipated signature on js function validate_signup');
 
 }
 
+like($form_html,qr/function validate_signup \(form\)/,'Got anticipated signature on js function validate_signup');
 like($form_html,qr/<form action="10-formbuilder.t" cgi_fb_cfg_simple_form_name="signup_form"/,'script seems to create signup form');
 like($form_html,qr/<fieldset id="signup_sample_fieldset">/,'Found correct fieldset');
 like($form_html,qr/<input id="this_field" name="this_field" /,'Found a this_field input option');
@@ -54,6 +54,22 @@ like($form_html,qr/<select id="that_field" name="that_field" /,'Found a that_fie
 like($form_html,qr/<option value="an_option">We call an_option like this<\/option>/,'Selector has expected option');
 like($form_html,qr/<input id="another_field" name="another_field" /,'Found a another_field input option');
 like($form_html,qr/<input id="signup_submit" name="_submit" type="submit" value="Lets Get Started" \/>/,'Found the submit button');
+
+my $dir = getcwd;
+# $agent->get_ok("$dir/t/test.cgi");
+# $agent->cgi($form_html);
+# $agent->post_ok(
+#      "$dir/t/test.cgi",
+#    { form_name => 'signup',
+#         fields => {
+#        this_field => 'test data',
+#        that_field => 'an_illegal_option',
+#     another_field => '465'
+#           },
+#         button => 'Lets Get Started' }
+#   );
+# 
+# like($agent->content(), qr/that_field requires legal option/, 'Returned expected validation errors');
 
 # print STDERR $form_html;
 # print STDERR Dumper($self->{'form'});

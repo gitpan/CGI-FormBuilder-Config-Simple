@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               CGI-FormBuilder-Config-Simple
-version:            0.09
+version:            0.11
 abstract:           deploy web forms w/ .ini file  
 author:
     - Hugh Esco <hesco@campaignfoundations.com>

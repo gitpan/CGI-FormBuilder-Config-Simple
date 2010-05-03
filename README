@@ -12,7 +12,7 @@ To install this module, run the following commands:
 	perl Makefile.PL
 	make
 	make test
-	make install
+	sudo make install
 
 SUPPORT AND DOCUMENTATION
 
@@ -20,6 +20,11 @@ After installing, you can find documentation for this module with the
 perldoc command.
 
     perldoc CGI::FormBuilder::Config::Simple
+
+The author is available for contract work and welcomes your
+inquiries to extend this module, or to use it or not in your
+next development project.
+	http://www.CampaignFoundations.com/
 
 You can also look for information at:
 
